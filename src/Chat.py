@@ -6,28 +6,35 @@ import logging
 import threading
 from datetime import datetime
 
-# Imports tiers (Dépendances)
+# Imports tiers
 try:
     import speech_recognition as sr
-    import requests
-    # Assurez-vous que ces modules existent dans votre projet
-    import tools 
-    # Si vous utilisez un module pour le son (ex: playsound ou pygame)
-    # from playsound import playsound 
+    from openai import OpenAI # On utilise le client officiel (plus robuste)
+    
+    # Imports locaux
+    import tools
+    from journal_reader import JournalWatcher
+    
+    # Optionnel : TTS Local pour éviter les coûts
+    try:
+        import pyttsx3
+        tts_engine = pyttsx3.init()
+    except ImportError:
+        tts_engine = None
+
 except ImportError as e:
     print(f"CRITIQUE : Module manquant - {e}")
     sys.exit(1)
 
-# --- 1. CONFIGURATION DU LOGGING (AMÉLIORATION) ---
+# --- 1. CONFIGURATION DU LOGGING ---
 log_dir = "logs"
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
-# Nom du fichier log avec la date (ex: logs/covas_2023-10-27.log)
 log_filename = os.path.join(log_dir, f"covas_{datetime.now().strftime('%Y-%m-%d')}.log")
 
 logging.basicConfig(
-    level=logging.INFO, # Changez en DEBUG pour voir absolument tout
+    level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(module)s: %(message)s',
     handlers=[
         logging.FileHandler(log_filename, encoding='utf-8'),
@@ -35,139 +42,190 @@ logging.basicConfig(
     ]
 )
 
-logging.info("=== INITIALISATION DU SYSTÈME COVAS:NEXT ===")
-
-# --- 2. CONFIGURATION GLOBALE ---
-# Remplacez ceci par le chargement de votre fichier config.json si nécessaire
+# --- 2. CHARGEMENT DE LA CONFIGURATION ---
 CONFIG = {
     "wakeword": "computer",
-    "openai_key": os.getenv("OPENAI_API_KEY", "VOTRE_CLE_ICI_SI_PAS_ENV"),
-    "model": "gpt-4o-mini", # ou "gpt-4" ou un modèle local Ollama
+    "openai_key": os.getenv("OPENAI_API_KEY", ""),
+    "model": "gpt-4o-mini",
     "language": "fr-FR"
 }
 
+# Tentative de chargement depuis config.json
+if os.path.exists("config.json"):
+    try:
+        with open("config.json", "r", encoding="utf-8") as f:
+            user_config = json.load(f)
+            # Mise à jour des clés existantes uniquement
+            for key in CONFIG:
+                if key in user_config:
+                    CONFIG[key] = user_config[key]
+            # Cas spécial pour la clé API si elle est dans le JSON
+            if "openai_api_key" in user_config:
+                CONFIG["openai_api_key"] = user_config["openai_api_key"]
+    except Exception as e:
+        logging.warning(f"Erreur lecture config.json: {e}")
+
 class CovasBrain:
     def __init__(self):
-        logging.info("Démarrage du cerveau IA...")
+        logging.info("🧠 Initialisation du Cerveau IA...")
+        
+        # 1. Audio
         self.recognizer = sr.Recognizer()
         self.microphone = sr.Microphone()
         
-        # Calibration du bruit ambiant au démarrage
-        with self.microphone as source:
-            logging.info("Calibration du micro en cours (Restez silencieux 1s)...")
-            self.recognizer.adjust_for_ambient_noise(source, duration=1)
-        logging.info("Micro calibré.")
+        # 2. Client OpenAI
+        if not CONFIG["openai_api_key"]:
+            logging.warning("⚠️ AUCUNE CLÉ OPENAI DÉTECTÉE ! L'IA ne pourra pas répondre.")
+        self.client = OpenAI(api_key=CONFIG["openai_api_key"])
 
-        self.conversation_history = [
-            {"role": "system", "content": "Tu es une IA de vaisseau spatial dans Elite Dangerous. Tu es utile, brève et immergée dans le rôle. Tu as accès aux outils de navigation et de gestion du vaisseau."}
+        # 3. Historique de conversation
+        self.history = [
+            {"role": "system", "content": "Tu es COVAS:NEXT, une IA de vaisseau dans Elite Dangerous. Tu es concise, technique et utile. Tu as accès aux systèmes du vaisseau via des outils. Si on te demande une route, utilise 'find_systems'."}
         ]
 
+        # 4. Intégration du Journal (Les Yeux sur le Jeu)
+        logging.info("👁️ Connexion au Journal du Commandant...")
+        self.journal_watcher = JournalWatcher()
+        self.game_thread = threading.Thread(
+            target=self.journal_watcher.listen_for_events, 
+            args=(self.handle_game_event,),
+            daemon=True
+        )
+        self.game_thread.start()
+
+        # Calibration du micro
+        with self.microphone as source:
+            logging.info("Calibration micro (1s)...")
+            self.recognizer.adjust_for_ambient_noise(source, duration=1)
+
+    def handle_game_event(self, event):
+        """Callback déclenché quand le jeu génère un événement."""
+        ev_type = event.get("event")
+        
+        # Exemple de réactions automatiques
+        if ev_type == "FSDJump":
+            sys_name = event.get("StarSystem", "Inconnu")
+            logging.info(f"🚀 Saut détecté vers : {sys_name}")
+            # On pourrait faire parler l'IA ici : self.speak(f"Arrivée dans {sys_name}")
+            
+        elif ev_type == "HullDamage":
+            health = event.get("Health", 0)
+            if health < 0.5:
+                self.speak("Alerte critique ! Intégrité de la coque sous 50%.")
+
     def listen(self):
-        """Écoute l'utilisateur et retourne le texte."""
+        """Écoute passive."""
         with self.microphone as source:
             logging.info("En écoute...")
             try:
-                # Timeout : arrête d'écouter si silence > 5s
-                # Phrase_time_limit : arrête si la phrase dure > 10s
                 audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
-                logging.debug("Audio capturé, conversion en texte...")
-                
+                logging.debug("Traitement audio...")
                 text = self.recognizer.recognize_google(audio, language=CONFIG["language"])
                 logging.info(f"ENTENDU : '{text}'")
                 return text.lower()
-                
             except sr.WaitTimeoutError:
-                logging.debug("Timeout (Silence).")
                 return None
             except sr.UnknownValueError:
-                logging.warning("Non compris (Bruit ou articulation).")
-                return None
-            except sr.RequestError as e:
-                logging.error(f"Erreur de service Google Speech : {e}")
-                return None
+                return None # Ignorer les bruits non compris
             except Exception as e:
-                logging.error(f"Erreur inattendue micro : {e}", exc_info=True)
+                logging.error(f"Erreur Micro : {e}")
                 return None
 
     def think_and_act(self, user_text):
-        """Envoie le texte à l'IA et gère la réponse + outils."""
-        if not user_text:
-            return
+        """Logique principale : Texte -> LLM -> Outil -> LLM -> Voix"""
+        if not user_text: return
 
-        # Ajout de l'input utilisateur à l'historique
-        self.conversation_history.append({"role": "user", "content": user_text})
+        # 1. Ajouter l'utilisateur à l'historique
+        self.history.append({"role": "user", "content": user_text})
 
         try:
-            logging.info("Interrogation du LLM (OpenAI/Local)...")
+            # 2. Premier appel à l'IA (Est-ce qu'elle veut parler ou agir ?)
+            logging.info("Réflexion en cours...")
+            response = self.client.chat.completions.create(
+                model=CONFIG["model"],
+                messages=self.history,
+                tools=tools.get_tools_definition(), # On lui donne la liste des outils
+                tool_choice="auto"
+            )
+
+            msg = response.choices[0].message
             
-            # --- SIMULATION APPEL API (À adapter selon votre fournisseur : OpenAI ou Ollama) ---
-            # Ceci est un exemple générique compatible OpenAI
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {CONFIG['openai_key']}"
-            }
-            payload = {
-                "model": CONFIG["model"],
-                "messages": self.conversation_history,
-                "functions": tools.get_tools_definition(), # Si vous avez défini vos outils dans tools.py
-                "function_call": "auto"
-            }
-            
-            # Note: Utilisez 'httpx' ou 'requests' ici. 
-            # Pour l'exemple simple on suppose une réponse directe
-            # response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-            # data = response.json()
-            
-            # --- PLACER VOTRE LOGIQUE D'APPEL ACTUELLE ICI ---
-            # (Je mets un mock pour que le code soit exécutable sans clé réelle)
-            ai_reply = "Reçu commandant. Analyse en cours." # Placeholder
-            
-            # Logique de détection d'outils (Function Calling)
-            # Si l'IA veut appeler un outil (ex: 'deploy_landing_gear')
-            # tool_name = ...
-            # tool_args = ...
-            # result = tools.execute(tool_name, tool_args)
-            
-            logging.info(f"REPONSE IA : {ai_reply}")
-            self.conversation_history.append({"role": "assistant", "content": ai_reply})
-            
-            # Synthèse vocale (TTS)
-            self.speak(ai_reply)
+            # 3. Vérifier si l'IA veut utiliser un outil (Function Calling)
+            if msg.tool_calls:
+                self.history.append(msg) # On garde la trace de la demande d'outil
+                
+                for tool_call in msg.tool_calls:
+                    func_name = tool_call.function.name
+                    args = json.loads(tool_call.function.arguments)
+                    logging.info(f"🔧 L'IA utilise l'outil : {func_name} avec {args}")
+                    
+                    # Exécution dynamique de la fonction depuis tools.py
+                    if hasattr(tools, func_name):
+                        function_to_call = getattr(tools, func_name)
+                        result = function_to_call(**args) # Exécution réelle (Recherche Spansh etc.)
+                        
+                        # On renvoie le résultat à l'IA
+                        self.history.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps(result)
+                        })
+                    else:
+                        logging.error(f"Outil inconnu : {func_name}")
+
+                # 4. Second appel à l'IA pour qu'elle interprète le résultat de l'outil
+                final_response = self.client.chat.completions.create(
+                    model=CONFIG["model"],
+                    messages=self.history
+                )
+                ai_text = final_response.choices[0].message.content
+            else:
+                # Pas d'outil, réponse directe
+                ai_text = msg.content
+
+            # 5. Réponse finale et vocalisation
+            self.history.append({"role": "assistant", "content": ai_text})
+            logging.info(f"REPONSE IA : {ai_text}")
+            self.speak(ai_text)
 
         except Exception as e:
-            logging.error(f"Erreur lors du traitement IA : {e}", exc_info=True)
-            self.speak("Erreur système. Je n'arrive pas à réfléchir.")
+            logging.error(f"Erreur Cerveau : {e}", exc_info=True)
+            self.speak("Erreur de traitement des données.")
 
     def speak(self, text):
-        """Gère la synthèse vocale (TTS)."""
-        if not text or text == "...":
-            return
-            
-        logging.info(f"VOCALISATION : {text}")
-        # --- INSÉRER VOTRE CODE TTS ICI (ElevenLabs, gTTS, pyttsx3) ---
-        # Exemple simple : print pour simulation
-        print(f"\n[VAISSEAU]: {text}\n") 
+        """TTS : Synthèse vocale."""
+        if not text: return
+        print(f"\n🗣️ [COVAS]: {text}\n")
+        
+        # Utilisation de pyttsx3 si disponible (Offline & Gratuit)
+        if tts_engine:
+            try:
+                tts_engine.say(text)
+                tts_engine.runAndWait()
+            except Exception as e:
+                logging.warning(f"Erreur TTS : {e}")
 
     def run(self):
         """Boucle principale."""
-        logging.info("Système prêt. Dites quelque chose...")
+        self.speak("Systèmes en ligne. Prêt.")
         try:
             while True:
                 text = self.listen()
                 if text:
-                    # Vérification simple du mot-clé (optionnel)
-                    if CONFIG["wakeword"] in text or True: # True pour test direct
-                        self.think_and_act(text)
-                    
-                time.sleep(0.1) # Petite pause pour économiser le CPU
+                    # Détection du mot-clé (Wakeword) ou commande directe
+                    if CONFIG["wakeword"] in text:
+                        # On nettoie la phrase (enlève "computer")
+                        clean_text = text.replace(CONFIG["wakeword"], "").strip()
+                        if clean_text:
+                            self.think_and_act(clean_text)
+                        else:
+                            self.speak("Oui commandant ?")
+                    # Optionnel : Si vous voulez parler sans mot clé, enlevez le 'if' ci-dessus
                 
+                time.sleep(0.1)
         except KeyboardInterrupt:
-            logging.info("Arrêt demandé par l'utilisateur (CTRL+C).")
-            print("\nArrêt du système.")
-        except Exception as e:
-            logging.critical(f"Crash du système principal : {e}", exc_info=True)
+            logging.info("Arrêt manuel.")
 
-# --- POINT D'ENTRÉE ---
 if __name__ == "__main__":
-    covas = CovasBrain()
-    covas.run()
+    brain = CovasBrain()
+    brain.run()
