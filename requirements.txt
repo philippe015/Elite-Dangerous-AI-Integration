@@ -1,90 +1,34 @@
-altgraph==0.17.4
-aiohttp==3.9.5
-annotated-types==0.7.0
-anyio==4.4.0
-av==12.3.0
-cached_path==1.6.3
-certifi==2024.7.4
-charset-normalizer==3.3.2
-click==8.1.8 
-colorama==0.4.6
-coloredlogs==15.0.1
-colorlog==6.8.2
-comtypes==1.4.5
-ctranslate2==4.3.1
-distro==1.9.0
-edge_tts==7.2.0
-exceptiongroup==1.2.2
-faster-whisper==1.0.3
-filelock==3.13.4
-flatbuffers==24.3.25
-fsspec==2024.6.1
-h11==0.14.0
-httpcore==1.0.5
-httpx==0.28.1
-huggingface-hub==0.23.5
-humanfriendly==10.0
-humanize==4.11.0
-idna==3.7
-keyboard==0.13.5
-kthread==0.2.3
-miniaudio==1.61
-MouseInfo==0.1.3
-mpmath==1.3.0
-num2words==0.5.13
-numpy==1.26.4
-onnxruntime==1.20.1 
-openai==2.8.0
-opencv-python==4.11.0.86
-packaging==24.1
-pefile==2023.2.7
-pick==2.4.0
-pillow==10.4.0
-psutil==6.0.0
-PyAudio==0.2.14
-PyAutoGUI==0.9.54
-pydantic==2.12.4
-pydantic-core==2.41.5
-pygame==2.6.0
-PyGetWindow==0.0.9
-pyinstaller==6.11.1
-pyinstaller-hooks-contrib==2024.10
-PyMsgBox==1.0.9
-pynput==1.7.7
-pyperclip==1.9.0
-pypiwin32==223 ; sys_platform == "win32"
-pyreadline3==3.4.1
-PyRect==0.2.0
-PyScreeze==0.1.30
-pysilero-vad==2.1.0
-sqlean.py==3.47.0
-pytest==8.3.3
-pytest-timeout==2.3.1
-pyttsx3==2.90
-pytweening==1.2.0
-pywin32==306 ; sys_platform == "win32"
-pywin32-ctypes==0.2.2 ; sys_platform == "win32"
-PyYAML==6.0.1
-requests==2.32.3
-samplerate==0.2.1
-six==1.16.0
-sniffio==1.3.1
-soundfile==0.12.1
-SpeechRecognition==3.10.4
-sqlite-vec==0.1.3
-strip_markdown==1.3
--f https://k2-fsa.github.io/sherpa/onnx/cpu.html
-sherpa-onnx==1.10.29
-sympy==1.13.1
-tokenizers==0.20.3
-tqdm==4.66.4
-typing-extensions==4.15.0
-urllib3==2.2.2
-wrapt==1.16.0
-zipp==3.19.2
-EDMesg @ git+https://github.com/RatherRude/EDMesg.git@dcb7045
-python-json-logger==3.3.0
-opentelemetry-api==1.38.0 
-opentelemetry-sdk==1.38.0 
-opentelemetry-exporter-otlp==1.38.0
-opentelemetry-instrumentation-openai==0.48.0
+# --- Cœur du système (IA & Audio) ---
+openai>=1.0.0
+# Version plus souple de numpy pour éviter les conflits Linux/Windows
+numpy>=1.24.0
+speechrecognition>=3.10.0
+# Utiliser 'sounddevice' est souvent plus stable que PyAudio sur Linux moderne
+sounddevice>=0.4.6
+scipy>=1.10.0
+
+# --- Réseau & Outils ---
+requests>=2.31.0
+httpx>=0.24.0
+python-socketio>=5.10.0
+python-engineio>=4.8.0
+aiohttp>=3.9.0
+
+# --- Interface (Si utilisée) ---
+flask>=3.0.0
+flask-socketio>=5.3.0
+
+# --- DÉPENDANCES CONDITIONNELLES (Le secret de la compatibilité) ---
+# Ces lignes ne s'installeront QUE si l'utilisateur est sur Windows.
+# Cela empêche le build Linux de planter.
+pywin32>=306; sys_platform == 'win32'
+winspeech>=1.0.1; sys_platform == 'win32'
+pyttsx3>=2.90; sys_platform == 'win32'
+
+# --- Dépendances Linux (Optionnel mais recommandé pour le TTS local) ---
+# espeakng; sys_platform == 'linux'
+
+# --- Autres utilitaires ---
+colorama>=0.4.6
+pillow>=10.0.0
+python-dotenv>=1.0.0
