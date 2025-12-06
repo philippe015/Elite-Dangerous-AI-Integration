@@ -1,32 +1,64 @@
+# --- Configuration & Secrets (CRITIQUE) ---
 config.json
 *.config.json
-config*.json
 secrets.json
 *.secrets.json
-secrets*.json
-covas*.db
-covas*.db*
-EDAI.log
-build
-dist
-gen
-target
-*.patch
-__pycache__
-conversation.json
+.env
+openai_key.txt
+
+# --- Logs & Base de données ---
 *.log
 *.log.*
-.env
-.cache
-node_modules
-.angular
-.venv
-venv
+EDAI.log
+covas*.db
+covas*.db*
+conversation.json
+# Spécifique Elite : Ignore les journaux copiés localement pour test
+Journal.*.log
 
-# Ignore all files in the plugins folder
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.pytest_cache/
+
+# --- Build & Distribution ---
+build/
+dist/
+*.spec
+target/
+gen/
+
+# --- Web / Node.js (Interface UI) ---
+node_modules/
+.angular/
+.cache/
+
+# --- Système (Windows/Mac) ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# --- Plugins (Extensions du projet) ---
 plugins/*
-
-# Ignore all files in the plugin_data folder
 plugin_data/*
-.*
-!.gitignore
+
+# --- IDE & Editeurs ---
+.idea/
+# On ignore tout le dossier VS Code...
+.vscode/
+# ... SAUF les fichiers de config utiles à l'équipe que nous avons créés
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+
+# --- GitHub (IMPORTANT : On force l'inclusion de ce dossier) ---
+# La ligne suivante annule l'ignorance pour le dossier workflows
+!.github/
+
+# --- Divers ---
+*.patch
