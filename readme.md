@@ -1,16 +1,21 @@
-# COVAS: NEXT (E:D AI Integration)
+# 🚀 Améliorations de ce Fork (v3.5+)
 
-[Getting Started](https://ratherrude.github.io/Elite-Dangerous-AI-Integration/)
-|
-[Join our Discord](https://discord.gg/9c58jxVuAT)
-|
-[Download latest version](https://github.com/RatherRude/Elite-Dangerous-AI-Integration/releases)
+Ce fork contient des optimisations majeures pour la stabilité et le support Linux / Steam Deck.
 
+## ✨ Nouvelles Fonctionnalités
 
-[![A Day in the Life of a Bounty Hunter](./docs/screen/video_thumb.png)](https://www.youtube.com/watch?v=nvuCwwixvxw)
+### 🐧 Compatibilité Linux & Steam Deck
+- **Build Natif :** Workflow GitHub optimisé pour compiler sur Ubuntu 20.04 (compatible glibc SteamOS).
+- **Chemins Automatiques :** Détection automatique des journaux (`Journal.log`) dans les dossiers Proton/Compatdata.
+- **Dépendances :** Nettoyage du `requirements.txt` pour éviter les erreurs `pywin32` sur Linux.
 
-This integration aims to provide a more intuitive and hands-free experience for commanders, making interactions with the game more seamless and efficient by allowing you to connect Elite:Dangerous with various services for Speech-to-Text, Text-to-Speech and Large Language Models. This creates a continuous conversation between you and the starship's computer via spoken word, as it should be in the 34th century.
+### 🧠 Intelligence & Farming
+- **Tri HGE (High Grade Emissions) :** La recherche de systèmes (`find_systems`) trie désormais par **Population** décroissante.
+  - *Avant :* Vous envoyait au système vide le plus proche.
+  - *Maintenant :* Vous envoie vers les systèmes peuplés (milliards d'habitants) où les matériaux rares apparaissent.
+- **Robustesse API :** Système de "Retry" automatique si Spansh ou EDSM ne répondent pas immédiatement.
 
-The AI will react to game events, it will react to given commands not just in text but by emulating key presses or game actions. It can decide to take a screenshot or fetch information from Galnet or various APIs about topics, systems and their respective factions and stations.
-
-The integration is designed for every commander: it's amazing at roleplaying, can replace third-party websites, can press buttons on command or if necessary provide tutorials and will always assist commanders no matter their role or level of experience.
+### 🛠️ Technique & Debug
+- **Mode Headless :** Lancez l'IA sans interface graphique (idéal pour Raspberry Pi ou serveur).
+  ```bash
+  python src/main.py --headless
