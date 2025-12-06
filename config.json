@@ -1,0 +1,23 @@
+{
+    "provider": "openai",
+    "openai_api_key": "sk-VOTRE_CLE_ICI",
+    "model_name": "gpt-4o-mini",
+    
+    "speech": {
+        "wake_word": "computer",
+        "voice_provider": "edge-tts", 
+        "voice_name": "en-GB-SoniaNeural",
+        "input_device_index": null
+    },
+
+    "game": {
+        "journal_path": "auto",
+        "commander_name": "CMDR",
+        "hge_farming_mode": true
+    },
+
+    "features": {
+        "enable_web_search": true,
+        "enable_galnet": true
+    }
+}
