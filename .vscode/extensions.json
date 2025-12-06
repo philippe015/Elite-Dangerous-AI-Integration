@@ -1,10 +1,21 @@
 {
     "recommendations": [
-        "ms-python.black-formatter",
+        // --- PYTHON (Backend IA) ---
         "ms-python.python",
-        "detachhead.basedpyright",
-        "tauri-apps.tauri-vscode",
+        "ms-python.black-formatter",
+        "detachhead.basedpyright",  // Excellent choix pour un typage strict
+        
+        // --- RUST & TAURI (Application Native) ---
         "rust-lang.rust-analyzer",
-        "angular.ng-template"
+        "tauri-apps.tauri-vscode",
+        "tamasfe.even-better-toml", // INDISPENSABLE pour éditer 'Cargo.toml' (Rust)
+        
+        // --- FRONTEND (Interface Angular) ---
+        "angular.ng-template",
+        "esbenp.prettier-vscode",   // Recommandé pour formater HTML/CSS/TS proprement
+        
+        // --- DEVOPS & GITHUB (Vos workflows) ---
+        "github.vscode-github-actions", // INDISPENSABLE : Pour voir l'état des builds sans quitter VS Code
+        "redhat.vscode-yaml"            // INDISPENSABLE : Pour valider la syntaxe des fichiers .yml et éviter les erreurs
     ]
 }
