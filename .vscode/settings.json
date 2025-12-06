@@ -1,19 +1,43 @@
 {
   "editor.tabSize": 4,
+
+  // --- PYTHON : Productivité ---
+  // Active l'intelligence (Pylance) pour voir les erreurs en temps réel
+  "python.languageServer": "Default", 
+  
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",
-    "editor.formatOnSave": false
+    // Activez ceci pour que le code se range tout seul quand vous sauvegardez
+    "editor.formatOnSave": true
   },
-  "python.languageServer": "None",
+
+  // --- TESTS ---
   "python.testing.pytestArgs": [
     "test"
   ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
 
+  // --- PERFORMANCE : Exclusions ---
+  // Empêche VS Code de chercher dans les dossiers de compilation (évite les lags)
+  "search.exclude": {
+    "**/dist": true,
+    "**/build": true,
+    "**/__pycache__": true,
+    "**/*.spec": true
+  },
+  "files.watcherExclude": {
+    "**/dist/**": true,
+    "**/build/**": true
+  },
+
+  // --- LINUX / TAURI ---
+  // Correctif pour éviter les conflits de librairies graphiques sur Linux
   "terminal.integrated.env.linux": {
     "GTK_PATH": null,
-    "GIO_MODULE_DIR": null,
+    "GIO_MODULE_DIR": null
   },
+  
+  // Indique à l'extension Rust où se trouve le projet Tauri
   "rust-analyzer.linkedProjects": ["ui/src-tauri/Cargo.toml"]
 }
